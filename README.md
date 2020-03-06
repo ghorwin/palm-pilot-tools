@@ -37,6 +37,15 @@ to keep external project/library dependencies to a minimum, so porting to other 
 [ 3030.137889] usb 1-2: Handspring Visor / Palm OS converter now attached to ttyUSB1
 ```
 
+Devices are created with following users/permissions:
+
+```
+crw-rw---- 1 root dialout 188, 0 Mär  6 10:02 /dev/ttyUSB0
+crw-rw---- 1 root dialout 188, 1 Mär  6 10:02 /dev/ttyUSB1
+```
+
+Users need to be in group `dialout` to read/write to those files.
+
 - [x] get at least part of palm-pilot source to compile
 - [x] try to get `pilot-dlps` tool to compile
 - [ ] try to talk to my Palm TX via `pilot-dlps`
