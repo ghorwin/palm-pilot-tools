@@ -1,10 +1,14 @@
 # palm-pilot-tools
-Palm sync and data exchange software - a revival of the dead pilot-link project.
+Palm sync and data exchange software - a revival of the dead pilot-link project. Note: webpage _palm-pilot.org_ is dead/empty.
 
 For those who still own one of the old Palm organizers like my TX and would like to still use this, I'm attempting to 
-update the source code of the original palm-link software to make it work with modern cloud-based organizers/address books.
+update the source code of the original palm-link software (see `archive/palm-link`) to make it work with modern cloud-based organizers/address books.
 
 Personal goal: get the Palm to _conveniently_ sync with OwnCloud/NextCloud caldav/carddav devices.
+
+Project deadline: 30.06.2020 (if I can't make it by then, this is taking too long to be practical)
+
+## Researched material
 
 ## Target platform
 
@@ -40,5 +44,9 @@ to keep external project/library dependencies to a minimum, so porting to other 
 
 ### Documentation
 
-- document alternative way of syncing with VirtualBox + WinXP + visor blacklisted  + usbforward + Palm+Desktop 
-- document setup of usb-comm on modern linux (visor kernel module + dialout group + ...)
+- [ ] document alternative way of syncing with VirtualBox + WinXP + visor blacklisted  + usbforward + Palm+Desktop 
+- [ ] document setup of usb-comm on modern linux (visor kernel module + dialout group + ...)
+
+### Palm data
+
+- collect prc files from various sources
