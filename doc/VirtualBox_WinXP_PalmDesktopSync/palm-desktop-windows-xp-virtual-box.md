@@ -53,6 +53,9 @@ should list the Palm device.
 
 ## Palm Hotsync setup
 
+Install Palm Desktop software (download from `archive/tools/PalmDesktop-setup-4.1.4.exe.removethis`) and mind to rename it to `.exe` first.
+
+
 TOOO : it took me a few trial and error sessions to get this working. Best would be if I start from scratch with a new VB and document all the individual steps needed....
 
 - Network connection (USB won't work)
