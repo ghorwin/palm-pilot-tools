@@ -32,8 +32,8 @@ to keep external project/library dependencies to a minimum, so porting to other 
 ```
 
 - [x] get at least part of palm-pilot source to compile
-- [ ] analyze and understand the original palm-pilot code base
 - [x] try to get `pilot-dlps` tool to compile
 - [ ] try to talk to my Palm TX via `pilot-dlps`
+- [ ] analyze and understand the original palm-pilot code base
 
 
