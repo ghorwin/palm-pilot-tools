@@ -76,6 +76,30 @@ Please use --help for more information
 It is currently unclear, when this happens. It occurs while the Palm is in the HotSync-process, sometimes
 afterwards.
 
+### Adding debugging output
+
+While executing the tool, the following environment variables are set:
+
+PILOT_DEBUG = DEV SLP PADP CMP NET SOCK API USER
+PILOT_DEBUG_LEVEL = DEBUG
+
+Now, when starting HotSync on the Palm, while "Listening..." is shown, the following output is received:
+
+```
+DEV POLL linuxusb found data on fd: 3
+SOCK fd=3 auto=1
+SOCK proto=DLP (6)
+```
+... then the tool hangs.
+
+*Mind:* You need to start HotSync only *after* the device is already listened to.
+
+Analysis: the code hangs in the loop in socket.c:470 trying to read the first 10 bytes from the socket
+to guess the correct protocol. The call to select() indicates "ready to read from file descriptor", yet 
+read() on the fd returns 0 bytes read. This results in an infinite loop.
+
+TODO : Need to understand why the select() call indicates "ready to read", yet no bytes are available.
+
 
 
 - [ ] analyze and understand the original palm-pilot code base
