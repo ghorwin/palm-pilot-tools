@@ -4,7 +4,7 @@ Palm sync and data exchange software - a revival of the dead pilot-link project.
 For those who still own one of the old Palm organizers like my TX and would like to still use this, I'm attempting to 
 update the source code of the original palm-link software to make it work with modern cloud-based organizers/address books.
 
-Personal goal: get the Palm to _convieniently_ sync with OwnCloud/NextCloud caldav/carddav devices.
+Personal goal: get the Palm to _conveniently_ sync with OwnCloud/NextCloud caldav/carddav devices.
 
 ## Target platform
 
@@ -14,6 +14,8 @@ to keep external project/library dependencies to a minimum, so porting to other 
 ### Syncing func
 
 - Focus is on USB/Cradle sync, Bluetooth and network appear more tricky, so that's lower priority
+- Addressbook and calender are my key priorities - everything else is less useful since the device is hardware-wise significantly outdated (though it still works nicely as mp3 player)
+
 
 ## Steps
 
@@ -36,4 +38,7 @@ to keep external project/library dependencies to a minimum, so porting to other 
 - [ ] try to talk to my Palm TX via `pilot-dlps`
 - [ ] analyze and understand the original palm-pilot code base
 
+### Documentation
 
+- document alternative way of syncing with VirtualBox + WinXP + visor blacklisted  + usbforward + Palm+Desktop 
+- document setup of usb-comm on modern linux (visor kernel module + dialout group + ...)
