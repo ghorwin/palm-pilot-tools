@@ -33,7 +33,7 @@ are preserved on all copies.
 
 @page
 @vskip 0pt plus 1filll
-Copyright @copyright 2000 Andrew Arensburger.
+Copyright 2000 Andrew Arensburger.
 
 Permission is granted to make and distribute verbatim copies of
 this manual provided the copyright notice and this permission notice
