@@ -242,8 +242,34 @@ and step over the first read call, I get 10 bytes. So, it appears to be a timing
 
 Next steps:
 
-- [ ] try to get coldsync to work with the Palm, to have a second piece of code to get ideas from
+- [x] try to get coldsync to work with the Palm, to have a second piece of code to get ideas from
 - [ ] analyze and understand the original palm-pilot code base, try to write a small serial communication part
+
+### Using ColdSync
+
+Now, with some basic understanding, running ColdSync should be possible.
+I created first the following config file `.coldsyncrc`:
+```
+listen serial "usb-linux" {
+	protocol: net;
+	device: /dev/ttyUSB1;
+}
+
+pda {
+	snum: "";
+	username: "Ghorwin";
+	userid: 2812;
+}
+```
+and as with pilot-link, first HotSync is started, and afterwards coldsync:
+
+```bash
+> ./coldsync --listen usb-linux
+```
+
+Without the pda-section in the config, coldsync complained about a user-id mismatch. In the error message the corresponding pda-config section was given, so that completing the config file was _easy_. And afterwards, coldsync did its thing and synced all `pdb` and `prc` files to the `~/.palm` directory.
+
+So far, I'm at a point where I can start - fully working connection and example code to debug into. Nice.
 
 ### Documentation
 
