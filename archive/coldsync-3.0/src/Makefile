@@ -68,7 +68,7 @@ OBJS =		${C_OBJS} ${CXX_OBJS} ${CONDUITS_OBJS} \
 
 LIBPCONN = 	-L${TOP}/libpconn -lpconn
 LIBPDB = 	-L${TOP}/libpdb -lpdb
-EXTRA_LIBS =	${LIBPDB} ${LIBPCONN} ${LIBYACC} ${LIBLEX}
+EXTRA_LIBS =	${LIBPDB} ${LIBPCONN} ${LIBYACC} ${LIBLEX} -lusb
 CLEAN =		${CXXPROG} ${OBJS} \
 		*.ln *.bak *~ core *.core .depend \
 		lex.yy.c y.tab.c y.tab.h y.output \
