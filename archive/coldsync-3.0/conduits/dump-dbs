@@ -1,0 +1,100 @@
+#!/usr/bin/perl
+#
+#	Copyright (C) 2003, Christophe Beauregard
+#	You may distribute this file under the terms of the Artistic
+#	License, as specified in the README file.
+#
+# $Id$
+
+# dumps the current database list (RAM, then ROM)
+
+use strict;
+use ColdSync;
+use ColdSync::SPC;
+use Palm::Raw;
+
+StartConduit("sync");
+
+print STDERR "RAM databases.....\n";
+my $start = 0;
+while (my $dbinfo = dlp_ReadDBList(0, 0x80, $start)) {
+	print STDERR $dbinfo->{'name'}, "\n";
+	$start = $dbinfo->{'last_index'} + 1;
+}
+
+print STDERR "ROM databases.....\n";
+my $start = 0;
+while (my $dbinfo = dlp_ReadDBList(0, 0x40, $start)) {
+	print STDERR $dbinfo->{'name'}, "\n";
+	$start = $dbinfo->{'last_index'} + 1;
+}
+
+print STDERR "Weasel books...\n";
+my @books = dlp_FindDBByCreatorType(undef, "zTXT");
+foreach(@books) {
+	print STDERR "$_->{name}\n";
+}
+
+print STDERR "Again, 'cause I can't think of something better...\n";
+my $ns = 1;
+while(my $book = dlp_FindDBByCreatorType(undef, "zTXT", $ns)) {
+	print STDERR "$book->{name}\n";
+	$ns = 0;
+}
+
+print STDERR "Mail database is called...\n";
+my $maildb = dlp_FindDBByCreatorType("mail", "DATA");
+if (defined $maildb) {
+	print STDERR "$maildb->{name} on card $maildb->{cardno}\n";
+}
+
+print STDERR "Mail database is...\n";
+$maildb = dlp_FindDBByName($maildb->{name}, $maildb->{cardno});
+if (defined $maildb) {
+	foreach (qw(name creator type version modnum)) {
+		print STDERR "$_: $maildb->{$_}\n";
+	}
+}
+
+print STDERR "Address database is...\n";
+my $addrdb = dlp_FindDBByName("AddressDB");
+if (defined $addrdb) {
+	foreach (qw(name creator type version modnum)) {
+		print STDERR "$_: $addrdb->{$_}\n";
+	}
+}
+
+EndConduit();
+
+__END__;
+
+=head1 name
+
+dump-dbs - Dump Palm databases
+
+=head1 SYNOPSIS
+
+Add the following to your F<.coldsyncrc> file:
+
+	conduit sync {
+		type: none;
+		...
+		path: <...>/dump-dbs;
+	}
+
+=head1 DESCRIPTION
+
+This conduit dumps the Palm database list
+
+=head1 BUGS
+
+Only databases in main storage are listed, and the main storage
+isn't guaranteed to always be card zero.
+
+=head1 SEE ALSO
+
+coldsync(8)
+
+=cut
+#'
+

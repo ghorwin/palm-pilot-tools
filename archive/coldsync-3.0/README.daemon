@@ -1,0 +1,191 @@
+	Some notes on running ColdSync as a daemon
+
+$Id$
+
+Introduction
+============
+
+	ColdSync can be run as a daemon. This allows one-button
+operation: just plunk your Palm into its cradle and push the HotSync
+button.
+	There are two main ways of setting this up, depending on how
+you want to connect to the Palm:
+
+	- For a serial connection, ColdSync behaves in a getty-like
+	  manner. Setting it up is similar to setting up a dumb
+	  terminal on a serial line, or incoming PPP.
+	  This is also used for USB under Linux. 
+
+	- For a USB connection under FreeBSD, you'll need to add an
+	  entry to /etc/usbd.conf . See README.usb for more details.
+
+
+These connection types are not mutually-exclusive. A given machine can
+support all two simultaneously, including multiple serial
+connections.
+
+	Actually, ColdSync doesn't really run as a standalone daemon.
+Rather, it allows standard Unix utilities to connect it to a Palm. But
+I still like the phrase "daemon mode."
+
+Common Setup
+====== =====
+
+	For all three connection types, you'll need to set up two
+configuration files: <prefix>/etc/coldsync.conf and <prefix>/etc/palms.
+<prefix> is determined by the package installation location the builder
+picked when running "configure".  By default it should be /usr/local.
+
+	The first configuration file, <prefix>/etc/coldsync.conf ,
+is optional, but it's a good idea to set it up anyway. Its format is
+the same as that of ~/.coldsyncrc, which is described in coldsync(8).
+This file allows you to specify conduits to run on each Palm at your
+site. In addition, you can prevent users from running their own
+conduits on certain database types, or any conduits at all.
+
+	The second config file is <prefix>/etc/palms . This file is
+also described in coldsync(8). It
+
+	- maps Palm devices to users, i.e., it specifies that before
+	  syncing a Palm with serial number X, username Y, and userid
+	  Z, it should first setuid() to Unix user U.
+	- allows you to specify a configuration file to use other than
+	  ~user/.coldsyncrc . This allows you to override users'
+	  preferences.
+
+Serial Connection
+====== ==========
+
+	To set up a serial connection, treat ColdSync as you would
+'getty'. If you're not sure what this means, the man page for getty(8)
+should mention a configuration file in /etc that you'll need to edit.
+Under FreeBSD and other BSD variants, this file is /etc/ttys, though
+it may be /etc/ttytab or something else on your machine. Under System
+V derivatives, you'll need to edit /etc/inittab.
+
+* FreeBSD:
+
+	Add a line similar to the following to /etc/ttys:
+
+ttyd0  "/usr/local/bin/coldsync -md -s -n"	unknown on
+
+Replace "ttyd0" with the appropriate device. If you use /dev/cuaa2 in
+standalone mode, then you'll need to use "ttyd2" here.
+
+	Note that there is a pun here: the "-n" option takes an
+argument, the name of a "listen" block in the config file. 'init' will
+append the tty name to the command line, so in this case, ColdSync
+will be invoked as
+
+	/usr/local/bin/coldsync -md -s -n ttyd0
+
+Thus, you need to have a named listen block in
+<prefix>/etc/coldsync.conf, with the same name as the tty:
+	listen serial "ttyd0" { ... }
+
+	Once you've edited /etc/ttys, you'll need to
+
+	# kill -HUP 1
+
+to tell 'init' to reread /etc/ttys . Watch for
+
+	getty repeating too quickly on port ...
+
+messages on the console: this is a sign that ColdSync didn't start up
+properly. To debug this, try running ColdSync as root the same way as
+specified in /etc/ttys, with the device as the last argument, e.g.:
+
+	# /usr/local/bin/coldsync -md -s -n ttyd0
+
+USB Connection
+=== ==========
+
+* Linux:
+
+	Under Linux, the connection is done through /dev/ttyUSB<n>,
+which really behaves like a serial connection. See "Serial
+Connection", above, and the file README.usb.
+
+* FreeBSD:
+
+	Under FreeBSD, the 'usbd' daemon can spawn ColdSync. You'll
+need to add the following entry to /etc/usbd.conf:
+
+	device "Handspring Visor"
+		vendor 0x082d
+		product 0x0100
+		release 0x0100
+		attach "/usr/local/bin/coldsync -md -t usb -s ${DEVNAME}"
+
+then kill and restart 'usbd'.
+
+Network Connection
+======= ==========
+
+	A network connection allows your machine to accept incoming
+HotSync requests. A Palm can have a "primary PC." If you sync on some
+machine other than your primary PC, the host on which you're syncing
+can forward the connection to your primary PC.
+
+
+	You can run ColdSync either in standalone or in inetd mode.
+If you use network hotsync frequently the inetd mode will be your best
+option, otherwise you can use standalone.
+
+
+Inetd
+=====
+
+	To run ColdSync from inetd you'll need to
+edit two files: /etc/services and /etc/inetd.conf .
+
+	/etc/services (or /etc/inet/services under Solaris): Add the
+following two lines: 
+
+	netsync-wakeup	14237/udp	# Palm network hotsync wakeup
+	netsync		14238/tcp	# Palm network hotsync data
+
+unfortunately, as of this writing, the IANA has not assigned names for
+these ports, so the names "netsync-wakeup" and "netsync" are made up.
+
+	/etc/inetd.conf: Add the following line:
+
+netsync	stream tcp nowait root /usr/local/bin/coldsync coldsync -md --listen netsync-inetd -l /var/log/netsync.log
+
+	then kill -HUP inetd.
+
+Don't omit the '-l /var/log/netsync.log' section, as it's required to redirect
+the standard error stream to the logfile. If omitted, the stderr will be connected
+to the network socket and will break your connection.
+
+Obviously you should have a suitable netsync-inetd profile in your
+<prefix>/etc/coldsync.conf , just like this one:
+
+	listen serial "netsync-inetd" {
+		protocol: net;
+		device: stdin;
+		noprompt;
+	}
+
+This configuration has been tested with success. If you have any problem,
+please write us a mail or check the mailing list archives for a solution.
+
+Some users reported us they had to use the utility pi-csd from the
+pilot-link package along with ColdSync to be able to succesfully
+sync from the network. 
+
+
+Standalone
+==========
+
+	To run ColdSync in standalone (one-shot) mode, you'll need a profile
+like this one:
+
+	listen net "netsync-standalone" {
+	}
+
+and launch ColdSync with
+
+	coldsync -md --listen netsync-standalone
+
+

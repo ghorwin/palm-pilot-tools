@@ -1,0 +1,66 @@
+	Some notes on running ColdSync with libusb 
+
+$Id$
+
+
+	libusb is an USB abstraction library that's used
+	to write OS independent USB drivers/apps.
+
+	The correct way to use it with coldsync is with a
+	proper listen libusb block, just like this one:
+
+	listen libusb "libusb" {
+	}
+
+	Then just launch coldsync as usual:
+
+		coldsync --listen libusb ...
+
+	As of coldsync 3.0, this listen block is automatically
+	added unless you specify a device on the command line
+	(and coldsync has been compiled with libusb support).
+
+	If that is the case, you can launch coldsync as in
+
+		coldsync
+
+	Easy, isn'it ? :)
+		
+	
+	Under Linux, udev/hotplug might try to load the visor
+	driver which would conflict with colsync.
+
+	If loaded, you should also rmmod the visor driver.
+
+	You may also want to check that /proc/bus/usb is mounted
+	and that the user has the permission to read/write
+	on the USB devices. To ease the task, you can mount
+	/proc/bus/usb with the option devmode=0666 .
+
+
+	The libusb support has been tested with the following
+	handhelds:
+
+	Aceeca MEZ-1000		4.1.2
+
+	Garmin iQue 3600	5.2.1r3
+
+	Handspring Visor	3.1H2
+	Handspring Treo 90	4.1H3
+	Handspring Treo 270	3.5.2H5.9
+
+	Palm m505		4.1
+	Palm Tungsten T		5.2.1
+	Palm Zire		4.1
+	Palm Zire 31		5.2.8
+	Palm Zire 72		5.2.8
+
+	
+	Support for the following units has been reported to be
+	broken at this time:
+
+	Palm Tungsten T2
+	Palm Tungsten T3
+
+
+
