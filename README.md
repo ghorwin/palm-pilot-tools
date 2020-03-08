@@ -20,7 +20,7 @@ to keep external project/library dependencies to a minimum, so porting to other 
 
 ## Steps
 
-See wiki for details and findings during the process.
+See [wiki](https://github.com/ghorwin/palm-pilot-tools/wiki/Palm-Pilot-Tools-Wiki) for details and findings during the process.
 
 - [x] check if kernel module 'visor' still works and recognizes my Palm
 - [x] get at least part of palm-pilot source to compile
@@ -29,6 +29,8 @@ See wiki for details and findings during the process.
 - [x] try to get coldsync to work with the Palm, to have a second piece of code to get ideas from
 - [ ] analyze and understand the original palm-pilot code base (or coldsync), try to write a small serial communication part - i.e. re-implement 
       some of the pilot-link stuff in a more robust way
+- [ ] trying to work with different baud rates
+- [ ] analyze adress db and calender db formats and conduits
 
 ### Documentation
 
