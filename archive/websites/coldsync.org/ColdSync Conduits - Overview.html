@@ -1,0 +1,337 @@
+
+<!-- saved from url=(0048)http://www.coldsync.org/doc/conduits_2.html#SEC2 -->
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=windows-1252">
+<!-- Created by texi2html 1.56k from conduits.texi on 28 February 2002 -->
+
+<title>ColdSync Conduits - Overview</title>
+</head>
+<body>
+Go to the <a href="http://www.coldsync.org/doc/conduits_1.html">first</a>, <a href="http://www.coldsync.org/doc/conduits_1.html">previous</a>, <a href="http://www.coldsync.org/doc/conduits_3.html">next</a>, <a href="http://www.coldsync.org/doc/conduits_6.html">last</a> section, <a href="http://www.coldsync.org/doc/conduits_toc.html">table of contents</a>.
+<p></p><hr><p>
+
+
+</p><h1><a name="SEC2" href="http://www.coldsync.org/doc/conduits_toc.html#TOC2">Overview</a></h1>
+
+<p>
+<a name="IDX1"></a>
+	By default, ColdSync is simply a fancy way of keeping a backup
+of what's on your Palm. This is all well and good, but what you'd really
+like is for your Palm to share its information with the other tools you
+have on your desktop.
+
+
+</p><p>
+	That's where conduits come in. A conduit is an external program
+that ColdSync runs at certain times; you can use a conduit to extend
+ColdSync's behavior.
+
+
+</p><p>
+	ColdSync is a generalist: it doesn't know a Calendar from a
+MineSweeper, so it has to treat all applications and their data in a
+fairly generic manner. Conduits, then, are specialists: they usually
+know all about one particular type of application and nothing else. This
+allows them to do the Right Thing for that particular application.
+
+
+
+
+</p><h2><a name="SEC3" href="http://www.coldsync.org/doc/conduits_toc.html#TOC3">Kinds of Databases</a></h2>
+
+<p>
+<a name="IDX2"></a>
+	Since Palms don't have disks, everything has to be in memory.
+Consequently, PalmOS doesn't distinguish between RAM and files, the way
+other operating systems do. Instead, everything is a database.
+
+
+</p><p>
+	There are two types of database:
+<em>record databases</em> and
+<em>resource databases</em>.
+
+
+</p><p>
+<a name="IDX3"></a>
+<a name="IDX4"></a>
+	Record databases consist, naturally, of records. These are the
+databases that hold all of your information. The "AddressDB" database,
+for instance, has one record for each address in the Address Book
+application.
+
+
+</p><p>
+<a name="IDX5"></a>
+<a name="IDX6"></a>
+<a name="IDX7"></a>
+<a name="IDX8"></a>
+	Resource databases are a bit more organized: each entry has a
+four-letter type, and a numerical identifier. Most resource databases
+are applications, containing one or more <samp>`code'</samp> entries, perhaps a
+few <samp>`Tbmp'</samp> (bitmap image) entries, and so forth. The types are
+documented strings that indicate what the resource is: <samp>`code'</samp>
+resources contain executable code, <samp>`Tbmp'</samp> resources are always
+bitmap images, and so forth. The numerical identifiers serve to tell
+resources of the same type apart.
+
+
+</p><p>
+<a name="IDX9"></a>
+	Not coincidentally, resource databases are very similar to the
+resource fork in MacOS files.
+
+
+</p><p>
+	Note that, for technical reasons, resource datatabases do not
+lend themselves well to syncing, and ColdSync pretty much ignores them.
+
+
+
+
+</p><h2><a name="SEC4" href="http://www.coldsync.org/doc/conduits_toc.html#TOC4">Creators and Types</a></h2>
+
+<p>
+<a name="IDX10"></a>
+<a name="IDX11"></a>
+	Each database also has a four-letter <em>type</em> and a
+four-letter <em>creator</em>. Each PalmOS application has a unique creator
+string. Every database that it creates has the the same creator string
+as the application. For example, the built-in Datebook application has
+the creator <samp>`date'</samp>. The record database that contains the Datebook
+entries also has the creator <samp>`date'</samp>.
+
+
+</p><p>
+	An application can potentially create several databases to
+represent different kinds of data. The built-in To Do application
+creates three separate record databases: <tt>`ExpenseDB'</tt>, with creator
+<code>exps</code> and type <code>DATA</code>; <tt>`CitiesDB'</tt>, with creator
+<code>exps</code> and type <code>city</code>; <tt>`VendorsDB'</tt>, with creator
+<code>exps</code> and type <code>vend</code>. All of these databases have the same
+creator field as the application that created them, but have different
+types, since they contain different kinds of information.
+
+
+</p><p>
+<a name="IDX12"></a>
+<a name="IDX13"></a>
+	Since each conduit typically handles only one specific kind of
+database, you have to tell ColdSync what it is. For instance, to run the
+<tt>`kab-fetch'</tt> conduit on databases with creator <samp>`addr'</samp> and type
+<samp>`DATA'</samp>, you would add the following to your <tt>`.coldsyncrc'</tt>
+file:
+
+
+
+</p><pre>conduit fetch {
+        path: "/usr/local/libexec/coldsync/kab-fetch";
+        type: addr/DATA;
+}
+</pre>
+
+<p>
+<a name="IDX14"></a>
+	An asterisk in a creator or type specification acts as a wildcard:
+
+</p><pre>        type: addr/*;
+</pre>
+
+<p>
+the conduit will be run for every database with creator <samp>`addr'</samp>,
+regardless of type. Likewise:
+
+
+
+</p><pre>        type: */DATA;
+</pre>
+
+<p>
+the conduit will be run for every database with type <samp>`DATA'</samp>,
+regardless of creator (though this isn't usually very useful). Finally,
+you can specify wildcards for both the creator and type:
+
+
+
+</p><pre>        type: */*;
+</pre>
+
+<p>
+In this case, the conduit will be run for every database.
+
+
+
+
+</p><h2><a name="SEC5" href="http://www.coldsync.org/doc/conduits_toc.html#TOC5">Conduit Flavors</a></h2>
+
+<p>
+<a name="IDX15"></a>
+	ColdSync defines several <em>flavors</em> of conduits. Each flavor
+performs a different function and is designed for a different purpose.
+Currently, four flavors are implemented.
+
+
+</p><p>
+<a name="IDX16"></a>
+<a name="IDX17"></a>
+	<em>Sync</em> conduits implement the synchronization between a
+database on the Palm and its backup copy on the desktop, what is
+referred to here as the main sync.
+
+
+</p><p>
+	The generic default conduit is a Sync conduit. It reads records
+from the Palm, compares them to what's on the desktop, and uploads or
+downloads records as necessary to ensure that both the Palm and the
+desktop have identical, up-to-date data.
+
+
+</p><p>
+	Since Sync conduits can talk directly to the Palm, they are the
+most powerful, but also the most complex type of conduit. In the most
+common case, where all you want to do is synchronize data between the
+Palm and a file or database, it is simpler to write a Fetch conduit and
+a Dump conduit. In some cases, however, this is not possible: if you
+want to set the time on the Palm, your conduit needs to do so while the
+Palm is connected. For this, you would need to use a Sync conduit.
+
+
+</p><p>
+<a name="IDX18"></a>
+<a name="IDX19"></a>
+	<em>Fetch</em> conduits run before the main sync. The idea is that
+a Fetch conduit will modify its database before ColdSync compares it to
+the version on the Palm. For instance, a conduit might read a list of
+scheduled meetings from <tt>`/usr/local/libdata/meetings'</tt> and make sure
+that they're all in the Address Book database in your backup directory.
+Then ColdSync wil make sure that any changes to the meeting list will be
+reflected on your Palm.
+
+
+</p><p>
+	To specify a Fetch conduit in your <tt>`.coldsyncrc'</tt>, use
+<code>fetch</code> or <code>pre-fetch</code> as the flavor argument to
+<code>conduit</code>, e.g.:
+
+
+
+</p><pre>conduit fetch {
+        path: "/usr/local/libexec/coldsync/get-meetings";
+        type: date/DATA;
+}
+</pre>
+
+<p>
+<a name="IDX20"></a>
+<a name="IDX21"></a>
+	If you specify several conduits of the same flavor for the same
+database, they will be run one at a time, in the order in which they
+appear in <tt>`.coldsyncrc'</tt>. This allows you to chain the effects of
+several conduits. Bear in mind, however, that they may interfere with
+each other
+
+
+</p><p>
+<a name="IDX22"></a>
+<a name="IDX23"></a>
+	<em>Dump</em> conduits run after the main sync. The intended
+purpose of a Dump conduit is to read its database after ColdSync is done
+with it, and copy its contents to some other file, in some other format.
+For instance, if you have made changes to your address list on the Palm,
+ColdSync will make sure that the backup copy in your home directory
+contains the same information as the Address Book database on the Palm.
+After that's done, a conduit can export this list in your favorite
+address book application's format.
+
+
+</p><p>
+	To specify a Dump conduit in your <tt>`.coldsyncrc'</tt>, use
+<code>dump</code> or <code>post-dump</code> as the flavor argument to
+<code>conduit</code>, e.g.:
+
+
+
+</p><pre>conduit dump {
+        path: "/usr/local/libexec/coldsync/save-meetings";
+        type: date/DATA;
+}
+</pre>
+
+<p>
+<a name="IDX24"></a>
+<a name="IDX25"></a>
+	If you only have a Fetch conduit defined for a database, it can
+implement "Desktop overwrites handheld" syncing, where the master copy
+is kept on the desktop machine, and any changes made on the Palm are
+lost.
+
+
+</p><p>
+<a name="IDX26"></a>
+	Conversely, if you only have a Dump conduit defined for a
+database, it can implement "Handheld overwrites desktop" syncing,
+where the master copy is kept on the Palm, and any changes made on the
+desktop machine are lost.
+
+
+</p><p>
+<a name="IDX27"></a>
+	If you have both a Fetch and a Dump conduit defined for a
+database, they can implement two-way syncing, where changes made on the
+desktop are propagated to the Palm and vice versa. Since the logic of
+syncing can get rather hairy, especially in difficult cases, it's easier
+to write two simple conduits, a Fetch and a Dump, than it is to write a
+single conduit that does a two-way sync.
+
+
+</p><p>
+<a name="IDX28"></a>
+<a name="IDX29"></a>
+	<em>Install</em> conduits provide a hook for manipulating
+databases before they're installed. In the installation phase, ColdSync
+looks for databases in the install directory (<tt>`~/.palm/install'</tt> by
+default) and runs any applicable Install conduits on them. After that,
+it installs any remaining files in the install directory.
+
+
+</p><p>
+	If you don't like the built-in Datebook application, but people
+give you databases in this format, you could use an Install conduit to
+convert them to your favorite format. Or, depending on how bleak the
+future becomes, you may find it necessary to have an Install conduit
+check new databases for viruses, and delete them if they're infected.
+
+
+
+
+</p><h2><a name="SEC6" href="http://www.coldsync.org/doc/conduits_toc.html#TOC6">Preferences</a></h2>
+
+<p>
+<a name="IDX30"></a>
+	The Palm has two special databases, "Saved Preferences" and
+"Unsaved Preferences," that contain preferences. Preferences are the
+PalmOS equivalent of dot files: they are neither applications nor data,
+but rather user preferences that affect how an application runs. The
+signature for outgoing mail in the Mail application is a preference. So
+is the "Owned by" text you can set in the Prefs application.
+
+
+</p><p>
+	ColdSync conduits can request to be given the value of a
+preference and act accordingly. For instance, a mail conduit might
+request the signature preference and append it to outgoing messages.
+
+
+</p><p>
+<a name="IDX31"></a>
+<a name="IDX32"></a>
+<a name="IDX33"></a>
+	There are two types of preferences: saved and unsaved. I have no
+idea what the difference is between these two types. Perhaps saved
+preferences are those that have found God.
+
+
+</p><p></p><hr><p>
+Go to the <a href="http://www.coldsync.org/doc/conduits_1.html">first</a>, <a href="http://www.coldsync.org/doc/conduits_1.html">previous</a>, <a href="http://www.coldsync.org/doc/conduits_3.html">next</a>, <a href="http://www.coldsync.org/doc/conduits_6.html">last</a> section, <a href="http://www.coldsync.org/doc/conduits_toc.html">table of contents</a>.
+
+
+</p></body></html>

@@ -1,0 +1,704 @@
+
+<!-- saved from url=(0049)http://www.coldsync.org/doc/conduits_4.html#SEC16 -->
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=windows-1252">
+<!-- Created by texi2html 1.56k from conduits.texi on 28 February 2002 -->
+
+<title>ColdSync Conduits - Specification</title>
+</head>
+<body>
+Go to the <a href="http://www.coldsync.org/doc/conduits_1.html">first</a>, <a href="http://www.coldsync.org/doc/conduits_3.html">previous</a>, <a href="http://www.coldsync.org/doc/conduits_5.html">next</a>, <a href="http://www.coldsync.org/doc/conduits_6.html">last</a> section, <a href="http://www.coldsync.org/doc/conduits_toc.html">table of contents</a>.
+<p></p><hr><p>
+
+
+</p><h1><a name="SEC16" href="http://www.coldsync.org/doc/conduits_toc.html#TOC16">Specification</a></h1>
+
+<p>
+<a name="IDX56"></a>
+	ColdSync allows the user to extend its functionality by means of
+<em>conduits</em>. A conduit is a program that is run from ColdSync, and
+which interacts with ColdSync according to a well-defined protocol.
+
+
+</p><p>
+<a name="IDX57"></a>
+	Conduits come in multiple <em>flavors</em>. ColdSync runs conduits
+at several points during its execution. The flavor of a conduit
+indicates the intended purpose of the conduit.
+See section <a href="http://www.coldsync.org/doc/conduits_4.html#SEC23">Conduit Flavors</a>.
+
+
+</p><p>
+	ColdSync communicates with conduits by sending information to
+the conduit's standard input (see section <a href="http://www.coldsync.org/doc/conduits_4.html#SEC17">Conduit Input</a>), and by reading
+results from the conduit's standard output (see section <a href="http://www.coldsync.org/doc/conduits_4.html#SEC21">Conduit Output</a>).
+This information is mostly in human-readable text form.
+
+
+</p><p>
+<a name="IDX58"></a>
+<a name="IDX59"></a>
+	A sync consists of the following phases (somewhat simplified):
+
+
+
+</p><ol>
+<li>Initialization
+
+<br>
+
+	ColdSync starts up, reads its configuration file(s), and
+performs basic initialization.
+
+</li><li>User presses HotSync button
+
+<br>
+
+	This indicates the beginning of the sync.
+
+</li><li>Gather information
+
+<br>
+
+	ColdSync gathers information from the Palm, such as the list of
+databases.
+
+</li><li>Fetch preferences
+
+<br>
+
+	ColdSync fetches from the Palm any preferences specified in the
+conduit configuration. Note that in the current implementation, ColdSync
+fetches all preferences listed in all conduits' configuration, even if
+those conduits will not be run.
+
+</li><li>Run Install conduits and install new databases (before sync)
+
+<br>
+
+	If ColdSync was told to install new databases before the main
+sync (the <code>-z</code> option was not specified), it now examines each
+database in the install directory and runs its Install conduits.
+<p>
+
+	Afterwards, if any databases remain in the install directory,
+ColdSync uploads them to the Palm. If the upload was successful,
+ColdSync deletes the file from the install directory, and adds an entry
+for the new database to its list of databases installed on the Palm.
+
+</p></li><li>Run Fetch conduits
+
+<br>
+
+	For each database on the Palm (including ones that have just
+been installed), ColdSync runs its Fetch conduits. Fetch conduits are
+expected to create or modify the databases in the backup directory.
+See section <a href="http://www.coldsync.org/doc/conduits_4.html#SEC25">Fetch Conduits</a>.
+
+</li><li>Run Sync conduits (main sync)
+
+<br>
+
+	ColdSync runs Sync conduits for each database on the Palm. If no
+other conduit was specified for a given database, ColdSync defaults to
+running the generic conduit. As each database is synchronized, the
+message "Synchronizing <var>Database</var>" appears on the Palm. If no
+backup file exists, ColdSync creates one by downloading the database.
+<p>
+
+	ColdSync then checks all of the files in the backup directory:
+if a file does not correspond to any database on the Palm, that file is
+moved to the Attic directory.
+</p><p>
+
+</p></li><li>Run Install conduits and install new databases (after sync)
+
+<br>
+
+	If ColdSync was invoked with the <code>-z</code> option, it will run
+Install conduits and install new databases after the main sync. See
+above.
+
+</li><li>Close the connection
+
+<br>
+
+	The message "HotSync complete" appears on the Palm. The user
+may remove it from the cradle.
+
+</li><li>Run Dump conduits
+
+<br>
+
+	For each database on the Palm (including the ones that were just
+installed), ColdSync runs its Dump conduits. Dump conduits are expected
+to read the databases in the backup directory.
+See section <a href="http://www.coldsync.org/doc/conduits_4.html#SEC26">Dump Conduits</a>.
+
+</li><li>Clean up
+
+<br>
+
+	ColdSync cleans up and terminates.
+
+</li></ol>
+
+<p>
+	If the configuration file calls for more than one conduit of the
+same flavor to be run for the same database, the conduits will be run in
+the order in which they are listed in the configuration file.
+
+
+</p><p>
+	ColdSync makes no guarantees as to the order in which different
+databases' conduits will be run, nor is there any guarantee that all of
+the conduits for one database will be run before the first conduit of
+another database.
+
+
+
+
+</p><h2><a name="SEC17" href="http://www.coldsync.org/doc/conduits_toc.html#TOC17">Conduit Input</a></h2>
+
+<p>
+<a name="IDX60"></a>
+<a name="IDX61"></a>
+<a name="IDX62"></a>
+<a name="IDX63"></a>
+<a name="IDX64"></a>
+	ColdSync passes information to conduits in three ways: as
+command-line arguments, in a series of <em>headers</em> and
+<em>preferences</em> on standard input, and through a designated special
+file descriptor (see section <a href="http://www.coldsync.org/doc/conduits_4.html#SEC22">SPC</a>).
+
+
+
+
+</p><h3><a name="SEC18" href="http://www.coldsync.org/doc/conduits_toc.html#TOC18">Command-line Arguments</a></h3>
+<p>
+<a name="IDX65"></a>
+	A conduit is invoked with two command-line arguments. The first
+is the string <code>conduit</code>. This argument will always be present when
+the conduit is run from ColdSync.
+
+
+</p><p>
+	The second argument designates the conduit flavor: the string
+<tt>`fetch'</tt>, for Fetch conduits, the string <code>dump</code>, for Dump
+conduits, the string <tt>`sync'</tt>, for Sync conduits, or the string
+<code>install</code> for Install conduits. (see section <a href="http://www.coldsync.org/doc/conduits_4.html#SEC23">Conduit Flavors</a>).
+
+
+
+
+</p><h3><a name="SEC19" href="http://www.coldsync.org/doc/conduits_toc.html#TOC19">Standard Input</a></h3>
+<p>
+<a name="IDX66"></a>
+<a name="IDX67"></a>
+<a name="IDX68"></a>
+<a name="IDX69"></a>
+	ColdSync writes a series of <em>headers</em> and <em>preference
+values</em> to the conduit's standard input. Each header is a line of the
+form
+
+</p><pre><var>Field</var>: <var>Value</var>
+</pre>
+
+<p>
+	<var>Field</var> is a string indicating a particular type of header.
+It may consist of upper- and lower-case letters, digits, hyphens, and
+underscores. The first character may only be a letter or an underscore.
+The length of <var>Field</var> may not exceed 32 characters. Fields are
+case-sensitive: <code>Foo</code> is not the same as <code>FOO</code>.
+
+
+</p><p>
+	The field is followed by a colon, a space, the <var>Value</var>
+string, and a newline character. The entire line may not be more than
+255 characters in length, including the field, but not including the
+terminating newline character.
+
+
+</p><p>
+	Note that a single space follows the colon. Any other whitespace
+is part of the value. This allows a conduit to accept an all-whitespace
+header value (e.g., a paragraph indentation string).
+
+
+</p><p>
+	<var>Value</var> is a string. It may not contain any newline
+characters. No other restrictions are placed upon its contents, although
+conduit writers are encouraged to use human-readable strings.
+
+
+</p><p>
+<a name="IDX70"></a>
+	There is currently no provision for multi-line header lines, nor
+for encoding methods such as "Quoted-printable."
+
+
+</p><p>
+<a name="IDX71"></a>
+<a name="IDX72"></a>
+	The end of the header is indicated by a blank line, i.e., two
+newlines in a row.
+
+
+</p><p>
+<a name="IDX73"></a>
+	Since preference data is binary, preferences are passed to the
+conduit in two parts: first, a set of <code>Preference</code> headers specify
+the preference's creator, ID, and length.
+
+
+</p><p>
+	Then, after the two newlines indicating the end of the headers,
+comes the preference data. This is simply the concatenation of the
+binary data for all of the preferences referred to by the
+<code>Preference</code> headers, in the order in which those headers appeared.
+
+
+
+
+</p><h3><a name="SEC20" href="http://www.coldsync.org/doc/conduits_toc.html#TOC20">Predefined Headers</a></h3>
+
+<p>
+	Certain header fields have predefined meanings and formats:
+
+
+</p><dl compact="">
+
+<dt><code>Daemon</code>
+</dt><dd>
+	The <code>Daemon</code> header identifies the program that ran the
+conduit. ColdSync uses the string <code>coldsync</code> as the value.
+<p>
+
+	According to the terms of the Artistic License, a person may
+modify ColdSync. If the modified version is incompatible with the
+Standard Distribution of ColdSync, it should use some string other than
+<code>coldsync</code> to identify itself.
+
+</p></dd><dt><code>Version</code>
+</dt><dd>
+	The <code>Version</code> header specifies the version of the program
+identified by <code>Daemon</code>.
+
+</dd><dt><code>InputDB</code>
+</dt><dd>
+	The <code>InputDB</code> header specifies the full pathname to the
+database file that the conduit should use as its input. This header is
+mandatory for Sync and Dump conduits, and is optional for Fetch and
+Install conduits.
+<p>
+
+	The file specified by <code>InputDB</code> might not exist, or might
+not be readable by the conduit. In such cases, the conduit should fail
+gracefully.
+
+</p></dd><dt><code>OutputDB</code>
+</dt><dd>
+	The <code>OutputDB</code> header specifies the full pathname to the
+database file that the conduit should use as its output. This header is
+mandatory for Sync, Fetch, and Install conduits, and is optional for
+Dump conduits.
+<p>
+
+	The file specified by <code>OutputDB</code> might not exist, in which
+case the conduit may create it. If it exists but is not writable by the
+conduit, the conduit should fail gracefully.
+
+</p></dd><dt><code>Preference</code>
+</dt><dd>
+<a name="IDX74"></a>
+	A <code>Preference</code> header identifies a preference being passed
+to the conduit. Each <code>Peference</code> header is of the form
+
+
+<pre>Preference: <var>creator</var>/<var>ID</var>/<var>length</var>
+</pre>
+
+where <var>creator</var> is the preference's four-character creator, <var>ID</var>
+is its numerical identifier (decimal), and <var>length</var> is the length of
+the preference data following the header (decimal).
+
+</dd><dt><code>SPCPipe</code>
+</dt><dd>
+<a name="IDX75"></a>
+<a name="IDX76"></a>
+<a name="IDX77"></a>
+	The <code>SPCPipe</code> header specifies the number (decimal) of an
+open file descriptor. This file descriptor may be used for SPC
+communications (see section <a href="http://www.coldsync.org/doc/conduits_4.html#SEC22">SPC</a>).
+
+</dd></dl>
+
+<p>
+	Other headers may be passed to the conduit, so the conduit
+should be prepared to handle them.
+
+
+</p><p>
+<a name="IDX78"></a>
+<a name="IDX79"></a>
+	If multiple <code>InputDB</code> or <code>OutputDB</code> headers are sent
+to a conduit, the last value sent is the authoritative one. It is an
+error to send more than one <code>Daemon</code> or <code>Version</code> header.
+
+
+
+
+</p><h2><a name="SEC21" href="http://www.coldsync.org/doc/conduits_toc.html#TOC21">Conduit Output</a></h2>
+
+<p>
+<a name="IDX80"></a>
+<a name="IDX81"></a>
+	A conduit may write lines to standard output. Each line should
+be of the form
+
+</p><pre><var>NNN</var> <var>Message</var>
+</pre>
+
+<p>
+where <var>NNN</var> is a three-digit status code (see section <a href="http://www.coldsync.org/doc/conduits_4.html#SEC28">Status Codes</a>), and
+<var>Message</var> is a human-readable string. A single space separates the
+status code from the message.
+
+
+</p><p>
+	Each line may be up to 255 characters in length, counting the
+status code, but not counting the terminating newline. There is
+currently no provision for multi-line messages.
+
+
+</p><p>
+	The three-digit status code indicates some condition that the
+conduit wishes to report to ColdSync, such as successful or unsuccessful
+termination, a warning, or an informational progress report. The
+meanings of various status codes are defined in section <a href="http://www.coldsync.org/doc/conduits_4.html#SEC28">Status Codes</a>.
+
+
+</p><p>
+	ColdSync does not attempt to parse the message string. It is
+intended solely for human readers.
+
+
+</p><p>
+<a name="IDX82"></a>
+	A conduit may print any number of lines. The status code of the
+last line printed by the conduit before it exits indicates the final
+exit status of the conduit, i.e., success or failure.
+
+
+</p><p>
+	Only 2<i>yz</i>, 4<i>yz</i>, and 5<i>yz</i> status codes may be used for
+the exit status.
+
+
+
+
+</p><h2><a name="SEC22" href="http://www.coldsync.org/doc/conduits_toc.html#TOC22">SPC</a></h2>
+
+<p>
+<a name="IDX83"></a>
+<a name="IDX84"></a>
+	The Serialized Procedure Call (SPC) is a protocol that allows a
+Sync conduit to communicate with the Palm. A Sync conduit is passed an
+<code>SPCPipe</code> header that gives the number of a file descriptor over
+which it can communicate via SPC (see section <a href="http://www.coldsync.org/doc/conduits_4.html#SEC20">Predefined Headers</a>).
+
+
+</p><p>
+	SPC is similar in spirit to RPC (Remote Procedure Call): the
+conduit sends an SPC request over the SPC file descriptor, and receives
+a response.
+
+
+</p><p>
+	SPC requests and responses have the same form:
+
+</p><pre>	unsigned short op;
+	unsigned short status;
+	unsigned long len;
+	<i>// <code>len</code> bytes of data</i>
+</pre>
+
+<p>
+where <code>op</code> is an opcode indicating which operation to perform;
+<code>status</code> indicates whether the operation was successful or not;
+<code>len</code> gives the length of the data following the header.
+
+
+</p><p>
+	Supported values for <code>op</code> are given by the <var>SPCOP_*</var>
+constants in <tt>`spc.h'</tt> in the ColdSync distribution. For known values
+for <code>status</code>, see the <var>SPCERR_*</var> constants in that file.
+
+
+</p><p>
+	All numeric values are given in network byte order. A
+<code>short</code> is 16 bits long; a <code>long</code> is 32 bits long.
+
+
+</p><p>
+	<code>status</code> is ignored in a request packet.
+
+
+</p><p>
+	In a response packet, <code>op</code> is the opcode of the request.
+
+
+</p><p>
+	The following SPC operations are currently defined:
+
+
+
+</p><ul>
+<li><code>NOP</code>
+
+	No-op. This does nothing, neither sends nor receives any data
+from the Palm, and is mainly useful as a connectivity test between the
+conduit and ColdSync. The response to a <code>NOP</code> has 0 bytes of data.
+
+</li><li><code>DBINFO</code>
+
+	Get database information. Returns a <code>struct dlp_dbinfo</code>,
+similar to those returned by the <code>dlpReadDBList</code> request, except
+that the SPC request returns the copy that ColdSync has already fetched,
+so it does not involve extra communication with the Palm over a slow
+serial connection.
+
+</li><li><code>DLPC</code>
+
+	This is the most powerful SPC request. The data for a
+<code>DLPC</code> request is a raw DLP request that will be sent to the Palm.
+The response is the raw response, as received from the Palm.
+
+</li></ul>
+
+
+
+<h2><a name="SEC23" href="http://www.coldsync.org/doc/conduits_toc.html#TOC23">Conduit Flavors</a></h2>
+
+<p>
+	There are currently four conduit flavors: Sync, Fetch, Dump, and
+Install.
+
+
+
+
+</p><h3><a name="SEC24" href="http://www.coldsync.org/doc/conduits_toc.html#TOC24">Sync conduits</a></h3>
+
+<p>
+<a name="IDX85"></a>
+	Sync conduits run during the main sync. The intended purpose of
+a Sync conduit is to ensure that a database on the Palm and its backup
+on the desktop both contain identical, up-to-date information. The
+generic conduit is a special instance of a Sync conduit.
+
+
+</p><p>
+	Sync conduits have the unique property that they run while
+ColdSync is connected to the Palm, and so may communicate with it by
+using the SPC protocol (see section <a href="http://www.coldsync.org/doc/conduits_4.html#SEC22">SPC</a>).
+
+
+
+
+</p><h3><a name="SEC25" href="http://www.coldsync.org/doc/conduits_toc.html#TOC25">Fetch Conduits</a></h3>
+
+<p>
+<a name="IDX86"></a>
+	<em>Fetch conduits</em> run before the main sync. The purpose of a
+Fetch conduit is to create or modify the backup copy of a database
+before ColdSync compares it to the copy on the Palm. The conduit may,
+for instance, add new records to be uploaded to the Palm.
+
+
+
+
+</p><h3><a name="SEC26" href="http://www.coldsync.org/doc/conduits_toc.html#TOC26">Dump Conduits</a></h3>
+
+<p>
+<a name="IDX87"></a>
+	<em>Dump conduits</em> run after the main sync. The purpose of a
+Dump conduit is to examine a database in the backup directory after it
+has been synchronized with the copy on the Palm. Usually, a Dump conduit
+will write the contents of the database in some other format, e.g., that
+of some other application.
+
+
+</p><p>
+	In most cases, a Dump conduit will only need to read its
+database. If necessary, however, it may modify the database. For
+instance, a Dump conduit for the Palm Mail application may send out
+every message in the Outbox, then delete it from the database.
+
+
+
+
+</p><h3><a name="SEC27" href="http://www.coldsync.org/doc/conduits_toc.html#TOC27">Install conduits</a></h3>
+
+<p>
+<a name="IDX88"></a>
+	<em>Install conduits</em> run just before new databases are
+uploaded to the Palm, which may happen either before or after the main
+sync. The purpose of an Install conduit is to examine a database that is
+about to be installed, and possibly delete or modify it, or create a new
+one.
+
+
+
+
+</p><h2><a name="SEC28" href="http://www.coldsync.org/doc/conduits_toc.html#TOC28">Status Codes</a></h2>
+
+<p>
+<a name="IDX89"></a>
+<a name="IDX90"></a>
+	The status codes that a conduit sends to ColdSync should be of
+the form of a three-digit decimal integer <i>xyz</i>.
+
+
+</p><p>
+<a name="IDX91"></a>
+	The first digit, <i>x</i>, indicates a general message class
+(success, failure, informational message, etc).
+
+
+</p><p>
+<a name="IDX92"></a>
+	The second digit, <i>y</i>, represents a category within the
+message class (file error, system error, etc.)
+
+
+</p><p>
+	The third digit, <i>z</i>, indicates a specific condition (out of
+memory, no such file, etc.)
+
+
+</p><p>
+	The precise meaning of most status codes is still undefined.
+Only the following classes have been defined:
+
+
+</p><dl compact="">
+
+<dt>0<i>yz</i>
+</dt><dd>
+<a name="IDX93"></a>
+<a name="IDX94"></a>
+Debugging messages. These will normally not be shown to the user. The
+precise circumstances under which they will be shown to the user have
+yet to be defined.
+
+</dd><dt>1<i>yz</i>
+</dt><dd>
+<a name="IDX95"></a>
+<a name="IDX96"></a>
+Informational messages. These will normally be shown to the user, but do
+not indicate that anything is wrong.
+<p>
+
+	In future versions of ColdSync, certain 1<i>yz</i> codes may
+acquire standard meanings, and their associated text strings will have a
+recommended format. This should allow real-time updates of the form
+"NN% complete" that can be displayed on the user's desktop.
+
+</p></dd><dt>2<i>yz</i>
+</dt><dd>
+<a name="IDX97"></a>
+<a name="IDX98"></a>
+Successful completion.
+<p>
+
+	There might conceivably be multiple forms of success. In the
+meantime, the recommended code for a plain, ordinary success is 202.
+
+</p></dd><dt>3<i>yz</i>
+</dt><dd>
+<a name="IDX99"></a>
+<a name="IDX100"></a>
+Warning. The 3<i>yz</i> status codes indicate that something is wrong, but
+that the conduit has managed to recover.
+
+<dl compact="">
+
+<dt>301
+</dt><dd>
+	Unspecified warning.
+
+	Indicates that something odd has occurred, but does not specify
+	what. This is the default warning printed by the
+	<code>ColdSync.pm</code> module if no status code was provided.
+
+</dd></dl>
+
+</dd><dt>4<i>yz</i>
+</dt><dd>
+<a name="IDX101"></a>
+<a name="IDX102"></a>
+<a name="IDX103"></a>
+<a name="IDX104"></a>
+ColdSync (caller) error. A 4<i>yz</i> code indicates that the conduit has
+failed because it was given improper input, e.g., invalid or missing
+command-line arguments, nonexistent <code>InputDB</code> file, unsupported
+version of ColdSync, and so forth.
+
+<dl compact="">
+
+<dt>401
+</dt><dd>
+	Unspecified Error.
+
+</dd><dt>402
+</dt><dd>
+	Lost connection to Palm.
+
+</dd></dl>
+
+</dd><dt>5<i>yz</i>
+</dt><dd>
+<a name="IDX105"></a>
+<a name="IDX106"></a>
+<a name="IDX107"></a>
+Conduit error. A 5<i>yz</i> code indicates that the conduit should have
+been able to perform its function, but couldn't. Reasons include running
+out of memory, segmentation violation, inability to parse an
+apparently-correct <code>InputDB</code> file, etc.
+
+<dl compact="">
+
+<dt>501
+</dt><dd>
+	Unspecified error.
+
+	Indicates that the conduit was not able to terminate for some
+	reason other than improper input, but does not specify the
+	cause. This is the default error code used by the
+	<code>ColdSync.pm</code> Perl module.
+
+</dd></dl>
+
+</dd><dt>6<i>yz</i>-9<i>yz</i>
+</dt><dd>
+These error codes are currently undefined, but may be used in future
+versions. Until then, they should not be used.
+
+</dd></dl>
+
+<p>
+<a name="IDX108"></a>
+	The last status code sent by the conduit before exiting gives
+the exit status of the conduit as a whole. That is, if a conduit exits
+successfully, the last thing it prints should be a 2<i>yz</i> status code.
+
+
+</p><p>
+	Only 2<i>yz</i>, 4<i>yz</i>, and 5<i>yz</i> status codes may be used for
+the final exit status.
+
+
+</p><p></p><hr><p>
+Go to the <a href="http://www.coldsync.org/doc/conduits_1.html">first</a>, <a href="http://www.coldsync.org/doc/conduits_3.html">previous</a>, <a href="http://www.coldsync.org/doc/conduits_5.html">next</a>, <a href="http://www.coldsync.org/doc/conduits_6.html">last</a> section, <a href="http://www.coldsync.org/doc/conduits_toc.html">table of contents</a>.
+
+
+</p></body></html>

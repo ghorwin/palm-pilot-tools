@@ -1,0 +1,893 @@
+
+<!-- saved from url=(0048)http://www.coldsync.org/doc/conduits_3.html#SEC7 -->
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=windows-1252">
+<!-- Created by texi2html 1.56k from conduits.texi on 28 February 2002 -->
+
+<title>ColdSync Conduits - Tutorial</title>
+</head>
+<body>
+Go to the <a href="http://www.coldsync.org/doc/conduits_1.html">first</a>, <a href="http://www.coldsync.org/doc/conduits_2.html">previous</a>, <a href="http://www.coldsync.org/doc/conduits_4.html">next</a>, <a href="http://www.coldsync.org/doc/conduits_6.html">last</a> section, <a href="http://www.coldsync.org/doc/conduits_toc.html">table of contents</a>.
+<p></p><hr><p>
+
+
+</p><h1><a name="SEC7" href="http://www.coldsync.org/doc/conduits_toc.html#TOC7">Tutorial</a></h1>
+
+<p>
+<a name="IDX34"></a>
+<a name="IDX35"></a>
+	This chapter shows, by example, how to write ColdSync conduits.
+The examples are written in Perl, simply because I happen to like it.
+However, you can use any language you like to write conduits.
+
+
+</p><p>
+	The example conduits in this chapter use the <code>ColdSync.pm</code>
+module that's part of the ColdSync distribution, and also the
+<code>p5-Palm</code> module from<br>
+<a href="http://www.coldsync.org/">http://www.coldsync.org/</a>.
+
+
+
+
+</p><h2><a name="SEC8" href="http://www.coldsync.org/doc/conduits_toc.html#TOC8">Conduit Workings: A Quick Overview</a></h2>
+
+<p>
+	A conduit is simply a program, one that follows the ColdSync
+conduit protocol (see section <a href="http://www.coldsync.org/doc/conduits_4.html#SEC16">Specification</a>).
+
+
+</p><p>
+	In a nutshell, ColdSync runs a conduit with two command-line
+arguments: the string <code>conduit</code>, and another that indicates the
+conduit flavor, either <code>fetch</code> or <code>dump</code>.
+
+
+</p><p>
+	ColdSync then writes a set of header lines to the conduit's
+standard input, e.g.,
+
+
+
+</p><pre>Daemon: coldsync
+Version: 2.3.0
+InputDB: /homes/arensb/.palm/backup/ToDoDB.pdb
+<a name="IDX36"></a>Phase-of-the-Moon: lunar eclipse
+</pre>
+
+<p>
+followed by a blank line.
+
+
+</p><p>
+	The conduit reports its status back to ColdSync by writing to
+standard output, e.g.:
+
+
+
+</p><pre>202 Success.
+</pre>
+
+<p>
+	The three-digit code indicates whether this is an error message,
+a warning, or an informational message. See section <a href="http://www.coldsync.org/doc/conduits_4.html#SEC28">Status Codes</a>. The rest of
+the line is a text message to go with the status code. It is not parsed
+by ColdSync; it is intended for human readers.
+
+
+</p><p>
+	A conduit should print such a message before exiting, to
+indicate whether it was successful or not.
+
+
+
+
+</p><h2><a name="SEC9" href="http://www.coldsync.org/doc/conduits_toc.html#TOC9"><code>todo-dump</code></a></h2>
+
+<p>
+	Let's write a Dump conduit that writes the current To Do list to
+a file. This is a single-flavor conduit, so we'll use the following
+template:
+
+
+</p><p>
+<a name="IDX37"></a>
+
+</p><pre>#!/usr/bin/perl
+use Palm::ToDo;
+use ColdSync;
+
+# Declarations and such go here.
+
+StartConduit("dump");
+
+# Actual conduit code goes here
+
+EndConduit;
+</pre>
+
+<p>
+	The <code>Palm::ToDo</code> module is a parser for ToDo databases; it
+adds hooks so that when the conduit reads the ToDo database, its records
+will be parsed into structures that can easily be manipulated by a Perl
+program (see Palm::ToDo(1)).
+
+
+</p><p>
+	The <code>ColdSync</code> module provides a framework for writing
+conduits, and defines the <code>StartConduit</code> and <code>EndConduit</code>
+functions.
+
+
+</p><p>
+	<code>StartConduit</code> takes one option indicating the conduit
+flavor (Dump, in this case). It checks the command-line options and
+makes sure the conduit was invoked with the proper flavor. It reads the
+headers from standard input and puts them in <code>%HEADERS</code>. If the
+conduit was given a <code>InputDB</code> header, <code>StartConduit</code> loads the
+database into <code>$PDB</code>.
+
+
+</p><p>
+	<code>EndConduit</code> takes care of cleaning up when the conduit
+finishes. For Fetch conduits, it writes <code>$PDB</code> to the file given by
+<code>$HEADERS{OutputDB}</code>.
+
+
+</p><p>
+	Starting with this template, all we need to do now is to insert
+the actual code:
+
+
+
+</p><pre>#!/usr/bin/perl
+use Palm::ToDo;
+use ColdSync;
+
+$OUTFILE = "$ENV{HOME}/TODO";           # Where to write the output
+
+format TODO =
+@ @ @&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;
+$marker, $priority, $description
+      ^&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt; ~~
+        $note
+.
+
+StartConduit("dump");
+
+open OUTFILE, "&gt; $OUTFILE" or die("401 Can't open $OUTFILE: $!\n");
+select OUTFILE;
+$~ = TODO;                      # Set the output format
+
+foreach $record (@{$PDB-&gt;{"records"}})
+{
+        $marker         = ($record-&gt;{"completed"} ? "x" : "-");
+        $priority       = $record-&gt;{"priority"};
+        $description    = $record-&gt;{"description"};
+        $note           = $record-&gt;{"note"};
+
+        write;
+}
+
+close OUTFILE;
+
+EndConduit;
+</pre>
+
+<p>
+	The <code>ColdSync.pm</code> module provides wrappers for Perl's
+<code>die</code> and <code>warn</code> functions, so that their messages will be
+passed back to ColdSync. The rest of the code should be
+self-explanatory.
+
+
+
+
+</p><h2><a name="SEC10" href="http://www.coldsync.org/doc/conduits_toc.html#TOC10"><code>pine-aliases</code></a></h2>
+
+<p>
+<a name="IDX38"></a>
+<a name="IDX39"></a>
+<a name="IDX40"></a>
+	Now that we've seen a trivial conduit, let's take a look at a
+slightly more complicated one: a conduit to synchronize addresses in the
+Palm Address Book database with those in Pine's address book.
+
+
+</p><p>
+	Note that this is still just a tutorial conduit: we'll be making
+some simplifying assumptions that will make this conduit unsuitable for
+use in the real world.
+
+
+</p><p>
+	Having said this, let's take a look at the conduit:
+
+
+</p><p>
+<a name="IDX41"></a>
+
+</p><pre>#!/usr/bin/perl
+use Palm::Address;
+use ColdSync;
+
+$PINE_ALIASES = "$ENV{HOME}/.addressbook";
+
+ConduitMain(
+        "fetch" =&gt; \&amp;DoFetch,
+        "dump"  =&gt; \&amp;DoDump,
+        );
+</pre>
+
+<p>
+<a name="IDX42"></a>
+	Unlike <code>todo-dump</code> (see section <a href="http://www.coldsync.org/doc/conduits_3.html#SEC9"><code>todo-dump</code></a>), <code>pine-aliases</code>
+is a multi-flavor conduit: it can be used either as a Fetch conduit or
+as a Dump conduit. For this reason, we use <code>ConduitMain</code> rather
+than <code>StartConduit</code>/<code>EndConduit</code>.
+
+
+</p><p>
+	There are several reasons why one might want to write a
+multi-flavor conduit like this one. The first is that the Fetch and Dump
+functions really just implement the two halves of a single conduit that
+performs two-way synchronization between the Palm and Pine.
+
+
+</p><p>
+	Secondly, we'll be writing some convenience functions that will
+be used by both <code>&amp;DoFetch</code> and <code>&amp;DoDump</code>, so it makes sense to
+keep them together.
+
+
+</p><p>
+	Finally, in many cases, the two things that one is synchronizing
+(in this case the Palm Address Book and Pine's addressbook file) don't
+contain the same information, or represent it in such a way that it's
+difficult to convert one to the other, and the conduit writer must
+resort to a number of tricks to perform the sync correctly.
+
+
+</p><p>
+	For instance, the Fetch conduit for <code>kab</code> tries to save
+each person's fax number in the Palm database. If there is no fax field,
+it will append "(212) 123-4567 (fax)" to the "Other" field.
+Therefore, the <code>kab</code> Dump conduit must look for the fax number in
+the "Other" field as well as the "Fax" field. Keeping the two
+conduits together in the same file makes it easier to keep track of
+these sorts of tricks and make sure that the two conduits work properly.
+
+
+</p><p>
+<a name="IDX43"></a>
+<a name="IDX44"></a>
+	<code>ConduitMain</code> takes as its arguments a table that tells
+which function to call for each flavor. When the conduit is run,
+<code>ConduitMain</code> parses and checks the command-line arguments, reads
+the headers from standard input and stores them in the hash
+<code>%HEADERS</code>, and calls the appropriate function. If an
+<code>InputDB</code> header was specified, that file will be read into the
+variable <code>$PDB</code>. Then it calls the flavor-specific function (in
+this case, either <code>&amp;DoFetch</code> or <code>&amp;DoDump</code>) to do the actual
+work of the conduit, and finally cleans up: for Fetch conduits, it
+writes the contents of <code>$PDB</code> to the file specified by the
+<code>OutputDB</code> header.
+
+
+
+
+</p><h3><a name="SEC11" href="http://www.coldsync.org/doc/conduits_toc.html#TOC11"><code>&amp;DoFetch</code></a></h3>
+
+<p>
+	The <code>&amp;DoFetch</code> function reads Pine's alias file. For each
+address that it finds there, it updates the email address in the
+appropriate record in the Palm database.
+
+
+
+</p><pre>sub DoFetch
+{
+        my %aliases = ();
+
+        if (!defined($PDB))
+        {
+                $PDB = new Palm::PDB;
+                $PDB-&gt;Load($HEADERS{"OutputDB"}) or
+                        die "502 No input database\n";
+        }
+
+        open ALIASES, "&lt; $PINE_ALIASES" or
+                die "Can't open $PINE_ALIASES: $!\n";
+
+        while (&lt;ALIASES&gt;)
+        {
+                my $alias;
+                my $addr;
+                my $fullname;
+                my @rest;
+
+                chomp;
+                ($alias, $fullname, $addr, @rest) = split /\t/;
+                $aliases{$fullname} = $addr;
+        }
+
+        my $fullname;
+        my $address;
+
+        while (($fullname, $address) = each %aliases)
+        {
+                my $record = &amp;find_person($PDB, $fullname);
+
+                next if !defined($record);      # No entry in PDB
+
+                my $pdb_addr = &amp;get_address($record);
+
+                next if $pdb_addr eq $address;
+                                # It already matches. Ignore it.
+
+                print STDOUT "101 Setting $fullname -&gt; $address\n";
+                &amp;set_address($record, $address);
+        }
+        close ALIASES;
+
+        return 1;               # Success
+}
+</pre>
+
+<p>
+	The <code>InputDB</code> header is optional for Fetch conduits, so
+<code>$PDB</code> may not have been initialized. But <code>pine-aliases</code> does
+not create a new database from scratch; it only modifies an existing
+one. If no <code>InputDB</code> database was specified, we load the database
+specified by <code>OutputDB</code>.
+
+
+</p><p>
+	The body of <code>&amp;DoFetch</code> is divided into two phases: in the
+first phase, it reads the Pine alias file and builds a hash,
+<code>%aliases</code>, that maps each full name to its email address. The
+second phase goes through this map and updates each record in
+<code>$PDB</code>. This two-phase approach may seem overly complex; the
+reasons for it are discussd in section <a href="http://www.coldsync.org/doc/conduits_3.html#SEC14">Limitations of <code>pine-aliases</code></a>.
+
+
+</p><p>
+	Each line in the Pine address book contains a set of
+tab-separated fields: the person's alias, full name, email address, and
+a few others that we don't use.
+
+
+</p><p>
+	We'll need some way of figuring out which Pine alias goes with
+which Palm Address Book record. Since the Pine alias file does not list
+Palm record IDs and Palm records don't list mail aliases, we'll settle
+on the full name as the next best way of uniquely identifying a person.
+
+
+</p><p>
+	The second phase of <code>&amp;DoFetch</code> uses a number of helper
+functions: <var>&amp;find_person</var> takes a person's full name and returns a
+reference to the corresponding record in <code>$PDB</code>;
+<code>&amp;get_address</code> extracts the email address from that record; and
+<code>&amp;set_address</code> sets the email address in the record.
+
+
+</p><p>
+	One important thing to note is that <code>&amp;set_address</code> marks
+the record as dirty. During a normal sync, ColdSync only considers those
+records that have changed in some way. When we update the address, we
+need to make sure that the record is marked as dirty; otherwise it will
+not be uploaded to the Palm.
+
+
+</p><p>
+	When <code>&amp;DoFetch</code> returns, <code>ConduitMain</code> writes
+<code>$PDB</code> to the file given by <code>$HEADERS{"OutputDB"}</code> and
+exits. Then, during the main sync, ColdSync will upload to the Palm any
+records <code>pine-aliases</code> has modified.
+
+
+
+
+</p><h3><a name="SEC12" href="http://www.coldsync.org/doc/conduits_toc.html#TOC12"><code>&amp;DoDump</code></a></h3>
+
+<p>
+	The <code>&amp;DoDump</code> function implements the Dump conduit:
+
+
+
+</p><pre>sub DoDump
+{
+        open ALIASES, "&lt; $PINE_ALIASES" or
+                die "502 Can't read $PINE_ALIASES: $!\n";
+        open ALIASES_NEW, "&gt; $PINE_ALIASES.new" or
+                die "502 Can't write $PINE_ALIASES.new: $!\n";
+
+        while (&lt;ALIASES&gt;)
+        {
+                chomp;
+
+                my $alias;
+                my $addr;
+                my $fullname;
+                my @rest;
+                my $record;
+
+                ($alias, $fullname, $addr, @rest) = split /\t/;
+
+                $record = &amp;find_person($PDB, $fullname);
+                if (!defined($record))
+                {
+                        # This name doesn't appear in $PDB.
+                        print ALIASES_NEW $_, "\n";
+                        next;
+                }
+
+                # This person appears in both the alias file and in
+                # the PDB.
+                my $pdb_addr = &amp;get_address($record);
+
+                if (defined($pdb_addr))
+                {
+                        # Found an address
+                        print STDOUT "101 $fullname -&gt; $pdb_addr\n"
+                                if $pdb_addr ne $addr;
+                        print ALIASES_NEW
+                                join("\t", $alias, $fullname,
+                                        $pdb_addr, @rest),
+                                "\n";
+                        next;
+                }
+
+                # The PDB record doesn't have an email address. Mark it
+                # as deleted.
+                my $year;
+                my $month;
+                my $day;
+
+                ($year, $month, $day) = (localtime)[5,4,3];
+                $year %= 100;
+                $month++;
+
+                $alias = sprintf "#DELETED-%02d/%02d/%02d#%s",
+                                $year, $month, $day, $alias;
+
+                print ALIASES_NEW
+                        join("\t", $alias, $fullname, $addr, @rest),
+                        "\n";
+        }
+
+        close ALIASES_NEW;
+        close ALIASES;
+        rename "$PINE_ALIASES.new", $PINE_ALIASES or
+                die "Can't rename $PINE_ALIASES.new: $!\n";
+
+        return 1;               # Success
+}
+</pre>
+
+<p>
+	In <code>&amp;DoDump</code>, we read each line of <tt>`~/.addressbook'</tt> in
+turn and write a possibly-update version to <tt>`~/.addressbook.new'</tt>.
+The reasons for using two files is twofold: first of all, the length of
+a line might change, so we can't just update the file in place.
+Secondly, if anything goes wrong during the sync, we can simply abort
+before moving the new file into place, and leave the old alias file
+untouched, rather than risk corrupting it.
+
+
+</p><p>
+	Again, we use <code>&amp;find_person</code> to look up the Palm record
+corresponding to a person's full name, and <code>&amp;get_address</code> to
+extract the email address from the record. There are three cases we
+need to consider:
+
+
+
+</p><ul>
+<li>There is no record corresponding to this alias.
+
+<p>
+
+	There are two approaches we can take here: we can either delete
+	the Pine alias (simply by not writing it to <code>ALIASES_NEW</code>),
+	or we can ignore it. Since we're not trying to make sure that
+	every Palm record has a corresponding Pine alias, we'll take the
+	latter approach.
+
+</p></li><li>There is a record, and it has an email address.
+
+<p>
+
+	We write the alias to <code>ALIASES_NEW</code>, with the email
+	address listed in the Palm record. This may or may not be
+	different from what was there before, but it doesn't matter:
+	this is the most up-to-date address.
+
+</p></li><li>There is a record, but it doesn't have an email address.
+
+<p>
+
+	In this case, we'll assume that the email address was deleted
+	on the Palm, otherwise the Fetch conduit would have uploaded the
+	email address. Hence, this email address is obsolete and
+	should be commented out. In general, it is preferable to comment
+	things out rather than delete them: that way, if there's a bug
+	somewhere, the information isn't permanently lost.
+
+</p></li></ul>
+
+
+
+<h3><a name="SEC13" href="http://www.coldsync.org/doc/conduits_toc.html#TOC13">Helper functions</a></h3>
+
+<p>
+	These are the helper functions used in <code>pine-aliases</code>.
+
+
+</p><p>
+<a name="IDX45"></a>
+	<code>&amp;find_person</code> takes a reference to a <code>Palm::Address</code>
+and a full name, and returns a reference to the record corresponding to
+that name:
+
+
+
+</p><pre>sub find_person
+{
+        my $PDB = shift;
+        my $fullname = shift;
+        my $record;
+
+        foreach $record (@{$PDB-&gt;{"records"}})
+        {
+                next unless ($record-&gt;{"fields"}{"firstName"} . " " .
+                        $record-&gt;{"fields"}{"name"}) eq $fullname;
+                return $record;
+        }
+        return undef;           # Failure
+}
+</pre>
+
+<p>
+	Since Palm Address Book records don't contain a full name field,
+we construct one from the first and last names, and see if it matches.
+
+
+</p><p>
+	Note that a better version of this function would also consider
+other fields: an entry such as "Ooblick Technical Support" might be
+listed on the Palm with no first or last name, but with the company
+field set to "Ooblick" and the title field set to "Technical
+Support".
+
+
+</p><p>
+<a name="IDX46"></a>
+	<code>&amp;get_address</code> takes a reference to a Palm record, and
+extracts the email address, if any:
+
+
+
+</p><pre>sub get_address
+{
+        my $record = shift;
+        my $field;
+
+        # Look through all of the "phone*" fields
+        foreach $field ( qw( phone1 phone2 phone3 phone4 phone5 ) )
+        {
+                next unless $record-&gt;{"phoneLabel"}{$field} == 4;
+
+                # Found the (or an) email field
+                my $addr = $record-&gt;{"fields"}{$field};
+
+                $addr =~ s/\n.*//;      # Keep only first line
+
+                # Remove parenthesized expressions
+                $addr =~ s/\([^\)]*\)//;
+                $addr =~ s/^\s+//;      # Remove leading whitespace
+                $addr =~ s/\s+$//;      # and trailing whitespace
+
+                return $addr;
+        }
+
+        return undef;           # Couldn't find anything
+}
+</pre>
+
+<p>
+	This was made into a separate function for clarity: the Palm
+Address Book record format does not contain a separate field for the
+email address. Rather, it has five fields named <code>phone1</code> through
+<code>phone5</code>, each of which can be a home phone, work phone, fax
+number, email address, etc. See Palm::Address(1) for details.
+
+
+</p><p>
+	<code>&amp;get_address</code> looks at each phone field in turn until it
+finds one whose <code>phoneLabel</code> is 4, meaning "Email". It extracts
+the useful part of the address and returns it.
+
+
+</p><p>
+	Note that this function is very simplistic: all it does is
+remove the parentheses from addresses of the form
+
+
+
+</p><pre>JDoe@ooblick.com (John Doe)
+</pre>
+
+<p>
+The general case is much more complex.
+
+
+</p><p>
+	<code>&amp;set_address</code> is the converse of <code>&amp;get_address</code>: it
+stores an email address in a record:
+
+
+
+</p><pre>sub set_address
+{
+        my $record = shift;
+        my $addr = shift;
+        my $field;
+
+        # Find the Email phone field
+        foreach $field ( qw( phone1 phone2 phone3 phone4 phone5 ) )
+        {
+                next unless $record-&gt;{"phoneLabel"}{$field} == 4;
+
+                # Found it.
+                $record-&gt;{"fields"}{$field} = $addr;
+                $record-&gt;{"attributes"}{"dirty"} = 1;
+                return;
+        }
+
+        # No Email field found.
+        foreach $field ( qw( phone1 phone2 phone3 phone4 phone5 ) )
+        {
+                next if $record-&gt;{"phoneLabel"}{$field} =~ /\S/;
+
+                # Found an empty field
+                $record-&gt;{"phoneLabel"}{$field} = 4;
+                $record-&gt;{"labels"}{$field} = $addr;
+                $record-&gt;{"attributes"}{"dirty"} = 1;
+                return;
+        }
+
+        # No Email fields, and no empty fields. Fail silently.
+        return;
+}
+</pre>
+
+<p>
+	Again, due to the format of Palm Address Book records, this
+function is more complicated than it seems that it ought to be.
+
+
+</p><p>
+	In the simplest case, we look at all of the phone fields, find
+one marked "Email", and update it.
+
+
+</p><p>
+	If there is no email field, <code>&amp;set_address</code> tries to find
+an empty field and turn it into an email field, then writes the address
+to that field.
+
+
+</p><p>
+	If there are no empty fields, we'll give up, since this is just
+a tutorial. A real conduit ought to keep trying: it might consider
+adding the email address to the "Other" phone field, if there is one.
+As a last resort, it might add the email address to the note. Of
+course, <code>&amp;get_address</code> also needs to know about all of the places
+where an email address might lurk.
+
+
+</p><p>
+	In any case, <code>&amp;set_address</code> marks the record as being
+dirty, so that it will be uploaded to the Palm at the next sync.
+
+
+
+
+</p><h3><a name="SEC14" href="http://www.coldsync.org/doc/conduits_toc.html#TOC14">Limitations of <code>pine-aliases</code></a></h3>
+
+<p>
+	The conduit we've just seen is just a tutorial. For the sake of
+simplicity, we've ignored several real-world considerations that would
+have made the code even harder to read.
+
+
+</p><p>
+	The first simplifying assumption we've made is that there is
+only one email address per person. In the real world, people often have
+a home address and a work address. To deal with this, <code>&amp;DoFetch</code>
+should collect an array of addresses for each person, then make sure
+that each address in the array exists in the Palm record (this is why
+<code>&amp;DoFetch</code> is split up into two phases).
+
+
+</p><p>
+	One issue that complicates matters is that a Palm Address Book
+record might contain multiple phone fields marked "Email".
+<code>&amp;get_address</code> ought to handle this case. The other side of the
+issue is that <code>&amp;set_address</code> shouldn't just dump all of the email
+addresses into the first "Email" phone record that it finds,
+otherwise the second and subsequent addresses will be duplicated.
+
+
+</p><p>
+	Secondly, we've assumed that each full name uniquely identifies
+a single person. This obviously fails if the user knows two people named
+John Smith. In the case of <code>pine-aliases</code>, we can get away with
+documenting this limitation and requiring the user to list one of them
+as "John Allan Smith" and the other as "John Paul Smith". We might
+also consider setting up a separate file that maps Pine mail aliases to
+Palm record IDs, since those are unique identifiers in their respective
+domains.
+
+
+</p><p>
+	Finally, <code>&amp;set_address</code> shouldn't fail so easily: if it
+fails to add an email address to the record, then at the next sync, the
+corresponding Pine alias will be commented out. If a record is so full
+that there are no empty phone records, then obviously it's very
+important, and the user would be rather upset at losing this email
+address.
+
+
+
+
+</p><h2><a name="SEC15" href="http://www.coldsync.org/doc/conduits_toc.html#TOC15">Style and Warnings: things to watch out for</a></h2>
+
+<p>
+	The conduit presented above is very simple, and does not address
+many problems you will run into when writing "real" conduits.
+
+
+
+</p><ul>
+
+<li>
+
+When writing a Fetch conduit, think about what it should do if
+there is no input: if the input file is empty, this might mean that
+there are no records, and the conduit should write a database with no
+records.
+<p>
+
+	However, if the input file doesn't exist, then it's probably a
+bad idea to delete all of the records in the backup database. In this
+case, it's probably best just to abort: most likely, the file was
+accidentally deleted, or else it's on an NFS partition and the remote
+host is down, or the file is supposed to be generated by a Dump conduit
+that hasn't been run yet.
+</p><p>
+
+</p></li><li>
+
+<a name="IDX47"></a>
+<a name="IDX48"></a>
+<a name="IDX49"></a>
+Deleting records: the obvious way to delete a record is to simply fail
+to write it to the output database. This is a bad idea, because of the
+way that fast syncs work. Use <code>$pdb-&gt;delete_Record($record)</code> or
+<code>$pdb-&gt;delete_Record($record, 1)</code>instead
+<p>
+
+	When you modify a record on the Palm, the record is marked as
+being dirty (modified). Likewise, when you delete a record on the Palm,
+it is not actually deleted; rather, it is simply marked as being
+deleted.
+<a name="DOCF1" href="http://www.coldsync.org/doc/conduits_foot.html#FOOT1">(1)</a>
+This way, ColdSync needn't bother downloading the entire database from
+the Palm to see which records have changed: it simply asks the Palm for
+a list of records that have been modified and/or deleted.
+</p><p>
+
+	ColdSync does the same thing in reverse, as well: it reads its
+backup copy of the database, looking for records that are marked as
+having been modified or deleted. It uploads modified records, and tells
+the Palm to purge the deleted records.
+</p><p>
+
+	If you're writing to the backup file and simply fail to write a
+deleted record, ColdSync will never notice this record and won't tell
+the Palm to delete it. It will remain on the Palm, and you will have to
+delete it manually.
+</p><p>
+
+</p></li><li>
+
+<a name="IDX50"></a>
+If you're converting a Palm database to another format, you'll often
+find that the Palm database and the other format hold different
+information. For instance, the KDE address book, <code>kab</code>, does not
+distinguish between home and work telephone numbers. On the other hand,
+it allows you to specify a person's URL, which the Palm Address Book
+does not directly support.
+<p>
+
+	Keep these sorts of differences in mind, or you'll risk losing
+information. One approach is to start by reading both the source and
+destination files, modify the records as necessary, and then write the
+resulting file. That way, if the output file has a field that doesn't
+correspond to anything on the Palm (like URLs in <code>kab</code> files,
+above), you won't delete those fields.
+</p><p>
+
+	An additional benefit of this approach is that if you encounter
+a fatal error in the middle of processing, you can simply abort without
+writing the output file. The information in the output file will be out
+of date, but at least it won't be lost.
+</p><p>
+
+</p></li><li>
+
+If you want to implement two-way syncing by having both Fetch and Dump
+conduits for a database, consider writing a single program that
+implements both flavors. Parts of the code will likely be the same, and
+you'll be more likely to keep the two mutually compatible.
+<p>
+
+<a name="IDX51"></a>
+	For instance, the <code>kab</code> format only has a single
+"telephone" field, and does not distinguish between home and work
+phone numbers. When converting a Palm database to a <code>kab</code> file, you
+can simply concatenate all of the various phone fields. When doing the
+reverse, however, you should look at each phone number in turn and see
+if it appears in <em>any</em> phone field in the Palm database.
+</p><p>
+
+	You're less likely to forget this if you only have one program.
+</p><p>
+
+</p></li><li>
+
+<a name="IDX52"></a>
+<a name="IDX53"></a>
+<a name="IDX54"></a>
+Fetch conduits should run quickly: when they run, the Palm is in the
+cradle and the user is waiting. It would be nifty to have a Fetch
+conduit that downloads the latest headlines from the web, but do you
+really want to wait for the conduit to surf to
+<a href="http://www.washingtonpost.com/">http://www.washingtonpost.com</a> every time you sync?
+<p>
+
+	If you want to do this sort of thing, consider setting up a
+<code>cron</code> job that'll fetch the latest headlines every hour and save
+the results to a file. Then your Fetch conduit can quickly read this
+file and not keep the user waiting.
+</p><p>
+
+	Dump conduits, on the other hand, run after the main sync, after
+the Palm has displayed the "HotSync complete" message. The user can
+pick up the Palm and walk away, even if the Dump conduits are still
+running.
+</p><p>
+
+</p></li><li>
+
+<a name="IDX55"></a>
+The database that your conduit reads or writes may have other conduits
+associated with it. Try not to mess things up for them. The fundamental
+rule of syncing is, "Don't delete unless you're sure."
+<p>
+
+	For instance, if you have a conduit that updates the Address
+Book from a company-wide database, don't just delete every address
+that's not on the list: you'll delete private addresses as well. In this
+case, it would probably be best to consider only addresses in the
+"Business" category, and leave the other ones alone.
+
+</p></li></ul>
+
+<p></p><hr><p>
+Go to the <a href="http://www.coldsync.org/doc/conduits_1.html">first</a>, <a href="http://www.coldsync.org/doc/conduits_2.html">previous</a>, <a href="http://www.coldsync.org/doc/conduits_4.html">next</a>, <a href="http://www.coldsync.org/doc/conduits_6.html">last</a> section, <a href="http://www.coldsync.org/doc/conduits_toc.html">table of contents</a>.
+
+
+</p></body></html>

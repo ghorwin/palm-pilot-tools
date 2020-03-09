@@ -1,0 +1,121 @@
+
+<!-- saved from url=(0040)http://www.coldsync.org/description.html -->
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=windows-1252">
+<title>ColdSync Description</title>
+</head>
+<body bgcolor="#50009e" text="white" link="yellow" vlink="orange">
+<img src="./ColdSync Description_files/logo.jpg" width="699" height="239" align="LEFT" alt="Coldsync">
+<br clear="ALL">
+
+<center><h1>Description</h1></center>
+
+	ColdSync is a tool for synchronizing
+<a href="http://www.palm.com/">PalmOS</a> devices (PalmPilot, Palm V,
+Qualcomm PDQ, etc.) with Unix workstations. <p>
+
+	"Synchronizing" (or "syncing", for short) refers to the
+process of copying data back and forth between the Palm and the
+workstation so that in the end they both hold the same contents.
+
+</p><center><h2>Features</h2></center>
+
+<h3>Synchronization</h3>
+
+	By default, ColdSync simply synchronizes the Palm with a
+backup directory on the workstation. That is, it copies all of the
+information on the Palm to the backup directory on the desktop and
+vice-versa. When possible, ColdSync performs a so-called "Fast Sync,"
+<i>i.e.</i>, it only copies those records that have changed, either on
+the Palm or on the desktop. This makes it possible to synchronize
+quickly, and not waste your time. <p>
+
+</p><h3>Archiving</h3>
+
+	If you have deleted a record on the Palm and checked the "Save
+Copy on PC" button, ColdSync deletes the record from the Palm, and
+also saves a copy on the workstation, in an archive file. <p>
+
+	ColdSync does not currently include any utilities for
+manipulating these archive files, but the archive file format is
+straightforward, and it should be easy to write such a utility.
+
+</p><h3>Installing Applications</h3>
+
+	To install a new application (a <tt>.prc</tt> file) on your
+Palm, simply copy the <tt>.prc</tt> file to ~/.palm/install/, and run
+ColdSync.
+
+<h3>Back Up and Restore</h3>
+
+	ColdSync can also make a complete backup of a Palm, or restore
+from a backup. You do not normally need to do this, but it is a good
+way of transferring all information from one Palm to another
+(<i>e.g.</i>, if you have just upgraded to a newer model).
+
+<h3>Portability</h3>
+
+	ColdSync endeavors to be portable: it has been built on a
+number of versions of Unix, and works with any Palm device from the
+PalmPilot upward.
+
+<h3>Paranoia</h3>
+
+	ColdSync takes pains never to delete anything that might be
+valuable. It will abort rather than corrupt an existing database. <p>
+
+	This is not meant as a guarantee, but rather as a bit of
+reassurance.
+
+</p><h3>Conduits</h3>
+
+	ColdSync can be extended and customized through the use of
+conduits. There are only <a href="http://www.coldsync.org/conduits">a handful of conduits</a>
+so far, but you're welcome to them. <p>
+
+	There is also
+<a href="http://www.coldsync.org/doc/conduits_toc.html">documentation</a> on writing conduits.
+
+</p><h3>USB/Visor Support</h3>
+
+	ColdSync supports USB connections for the
+<a href="http://www.handspring.com/">Handspring Visor</a>
+as of version 1.1. <p>
+
+	Note that USB is only supported under FreeBSD 4.0 for now.
+
+</p><h3>Infrared Syncing</h3>
+
+	The Palm III and Palm V and others can sync via the infra-red
+port. They use IrCOMM, which is designed to make an IR port look like
+a plain old RS-232 serial port. <p>
+
+	Several people have reported success in getting this to work
+under Linux. </p><p>
+
+</p><center><h2><a name="security">Security</a></h2></center>
+
+	Unfortunately, due to the design of the protocols involved,
+ColdSync is terribly insecure. In particular:
+
+<ul>
+<li> ColdSync has no guarantee that the Palm device it is talking to
+     is really the one it claims to be.
+</li><li> The Palm device has no guarantee that the daemon it is talking to
+     is really a ColdSync process, or that it is being run by an
+     authorized user.
+</li><li> The data passing back and forth between the Palm and the
+     workstation is not encrypted in any way.
+</li><li> "Private" records are copied back and forth like any other. The
+     "private" flag means absolutely nothing.
+</li><li> The user's password on the Palm is encrypted, but that's it.
+     ColdSync does not use it, nor does it require any user
+     authentication to run.
+</li></ul> <p>
+
+	On the plus side, however, ColdSync is not setuid, nor does it
+need any special privileges other than permission to read from and
+write to the serial port that the cradle is attached to. </p><p>
+
+
+
+</p></body></html>
