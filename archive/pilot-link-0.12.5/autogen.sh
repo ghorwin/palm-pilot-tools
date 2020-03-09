@@ -16,17 +16,6 @@ DIE=0
   DIE=1
 }
 
-(grep "^AM_PROG_LIBTOOL" $srcdir/configure.ac >/dev/null) && {
-  (glibtool --version) < /dev/null > /dev/null 2>&1 || 
-  (libtool --version) < /dev/null > /dev/null 2>&1 || {
-    echo
-    echo "**Error**: You must have \`libtool' installed to compile $PKG_NAME."
-    echo "Get ftp://ftp.gnu.org/pub/gnu/libtool/libtool-1.5.tar.gz"
-    echo "(or a newer version if it is available)"
-    DIE=1
-  }
-}
-
 # usage: test_version program version
 # returns 0 if program >= version; returns 1 if not.
 test_version()
