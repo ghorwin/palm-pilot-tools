@@ -28,7 +28,7 @@ $h2xsheaders = join(' ', map { "$plincdir/$_" } qw(
 
 sub MY::postamble {
     "%.inc:
-	perl ./h2xs-pilot-link -n PDA::Pilot $h2xsheaders
+	 ./h2xs-pilot-link -n PDA::Pilot $h2xsheaders
 	cp PDA-Pilot/fallback/*.inc .
 	rm -rf PDA-Pilot
 ";
