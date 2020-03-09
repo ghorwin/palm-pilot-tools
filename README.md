@@ -26,8 +26,8 @@ See [wiki](https://github.com/ghorwin/palm-pilot-tools/wiki/Palm-Pilot-Tools-Wik
 - [x] get at least part of palm-pilot source to compile
 - [x] try to get `pilot-dlps` tool to compile
 - [x] try to talk to my Palm TX via `pilot-dlps`
-- [x] try to get coldsync to work with the Palm, to have a second piece of code to get ideas from
-- [ ] analyze and understand the original palm-pilot code base (or coldsync), try to write a small serial communication part - i.e. re-implement 
+- [x] try to get coldsync to compile and to work with the Palm, to have a second piece of code to get ideas from
+- [ ] analyze and understand the original palm-pilot code base (or coldsync), try to write a small serial communication part - i.e. re-implement
       some of the pilot-link stuff in a more robust way
 - [ ] trying to work with different baud rates
 - [ ] analyze adress db and calender db formats and conduits
@@ -39,4 +39,3 @@ See [wiki](https://github.com/ghorwin/palm-pilot-tools/wiki/Palm-Pilot-Tools-Wik
 ### Palm data
 
 - collect prc files from various sources
-
